@@ -1,3 +1,4 @@
+import os
 import time
 import requests
 
@@ -7,9 +8,15 @@ class HttpClient:
     def __init__(self, base_url="https://api.agify.io", timeout=5.0):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
+        self.api_key = os.getenv("AGIFY_API_KEY")
 
     def get(self, endpoint="", params=None):
         url = f"{self.base_url}{endpoint}"
+
+        params = params.copy() if params else {}
+
+        if self.api_key:
+            params["apikey"] = self.api_key
 
         max_attempts = 2
         last_exception = None
@@ -31,19 +38,8 @@ class HttpClient:
                 )
 
                 if response.status_code == 429:
-                    reset = response.headers.get("X-Rate-Limit-Reset")
-
                     if attempt < max_attempts - 1:
-                        if reset:
-                            try:
-                                wait_time = float(reset)
-                                wait_time = min(wait_time, 5.0)
-                            except ValueError:
-                                wait_time = 2.0
-                        else:
-                            wait_time = 2.0
-
-                        time.sleep(wait_time)
+                        time.sleep(2)
                         continue
 
                     return {
@@ -56,7 +52,7 @@ class HttpClient:
 
                 if response.status_code >= 500:
                     if attempt < max_attempts - 1:
-                        time.sleep(1.0)
+                        time.sleep(1)
                         continue
 
                 return {
@@ -67,17 +63,6 @@ class HttpClient:
                     "error": None
                 }
 
-            except requests.Timeout as exc:
-                latency_ms = round(
-                    (time.perf_counter() - start) * 1000,
-                    2
-                )
-
-                last_exception = exc
-
-                if attempt < max_attempts - 1:
-                    time.sleep(1.0)
-
             except requests.RequestException as exc:
                 latency_ms = round(
                     (time.perf_counter() - start) * 1000,
@@ -87,7 +72,7 @@ class HttpClient:
                 last_exception = exc
 
                 if attempt < max_attempts - 1:
-                    time.sleep(1.0)
+                    time.sleep(1)
 
         return {
             "ok": False,
