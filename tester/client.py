@@ -1,28 +1,22 @@
-import os
 import time
 import requests
 
 
 class HttpClient:
 
-    def __init__(self, base_url="https://api.agify.io", timeout=5.0):
+    def __init__(self, base_url="https://api.frankfurter.app", timeout=5.0):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
-        self.api_key = os.getenv("AGIFY_API_KEY")
 
     def get(self, endpoint="", params=None):
         url = f"{self.base_url}{endpoint}"
 
-        params = params.copy() if params else {}
-
-        if self.api_key:
-            params["apikey"] = self.api_key
-
-        max_attempts = 2
+        attempts = 0
         last_exception = None
         latency_ms = 0.0
 
-        for attempt in range(max_attempts):
+        while attempts < 2:
+            attempts += 1
             start = time.perf_counter()
 
             try:
@@ -37,23 +31,15 @@ class HttpClient:
                     2
                 )
 
-                if response.status_code == 429:
-                    if attempt < max_attempts - 1:
-                        time.sleep(2)
-                        continue
+                # Retry simple en cas de limitation
+                if response.status_code == 429 and attempts < 2:
+                    time.sleep(1)
+                    continue
 
-                    return {
-                        "ok": False,
-                        "status_code": 429,
-                        "latency_ms": latency_ms,
-                        "response": response,
-                        "error": "Rate limit Agify (429)"
-                    }
-
-                if response.status_code >= 500:
-                    if attempt < max_attempts - 1:
-                        time.sleep(1)
-                        continue
+                # Retry simple en cas d'erreur serveur
+                if response.status_code >= 500 and attempts < 2:
+                    time.sleep(1)
+                    continue
 
                 return {
                     "ok": True,
@@ -71,7 +57,7 @@ class HttpClient:
 
                 last_exception = exc
 
-                if attempt < max_attempts - 1:
+                if attempts < 2:
                     time.sleep(1)
 
         return {
