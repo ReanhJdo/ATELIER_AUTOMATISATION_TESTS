@@ -1,19 +1,8 @@
-def _get_valid_name(client):
-    """
-    Effectue une seule requête pour les tests qui utilisent
-    un prénom valide, puis réutilise la réponse.
-    """
-    if not hasattr(client, "_cached_michael"):
-        client._cached_michael = client.get(
-            "",
-            params={"name": "michael"}
-        )
-
-    return client._cached_michael
-
-
-def test_status_200_valid_name(client):
-    res = _get_valid_name(client)
+def test_status_200_latest(client):
+    res = client.get(
+        "/latest",
+        params={"from": "EUR"}
+    )
 
     assert res["status_code"] == 200, (
         f"Code attendu 200, reçu {res['status_code']}"
@@ -23,13 +12,18 @@ def test_status_200_valid_name(client):
 
 
 def test_content_type_json(client):
-    res = _get_valid_name(client)
+    res = client.get(
+        "/latest",
+        params={"from": "EUR"}
+    )
 
     assert res["status_code"] == 200, (
         f"Code attendu 200, reçu {res['status_code']}"
     )
 
-    content_type = res["response"].headers.get("Content-Type", "")
+    content_type = res["response"].headers.get(
+        "Content-Type", ""
+    )
 
     assert "application/json" in content_type, (
         f"Content-Type invalide : {content_type}"
@@ -39,7 +33,10 @@ def test_content_type_json(client):
 
 
 def test_schema_keys(client):
-    res = _get_valid_name(client)
+    res = client.get(
+        "/latest",
+        params={"from": "EUR"}
+    )
 
     assert res["status_code"] == 200, (
         f"Code attendu 200, reçu {res['status_code']}"
@@ -47,14 +44,19 @@ def test_schema_keys(client):
 
     data = res["response"].json()
 
-    for field in ["name", "age", "count"]:
-        assert field in data, f"Champ manquant : {field}"
+    for field in ["amount", "base", "date", "rates"]:
+        assert field in data, (
+            f"Champ manquant : {field}"
+        )
 
     return res["latency_ms"]
 
 
 def test_data_types(client):
-    res = _get_valid_name(client)
+    res = client.get(
+        "/latest",
+        params={"from": "EUR"}
+    )
 
     assert res["status_code"] == 200, (
         f"Code attendu 200, reçu {res['status_code']}"
@@ -62,27 +64,31 @@ def test_data_types(client):
 
     data = res["response"].json()
 
-    assert isinstance(data["name"], str), (
-        "Le champ 'name' doit être une chaîne de caractères"
+    assert isinstance(data["amount"], (int, float)), (
+        "Le champ 'amount' doit être un nombre"
     )
 
-    assert data["age"] is None or isinstance(data["age"], int), (
-        "Le champ 'age' doit être un entier ou null"
+    assert isinstance(data["base"], str), (
+        "Le champ 'base' doit être une chaîne"
     )
 
-    assert isinstance(data["count"], int), (
-        "Le champ 'count' doit être un entier"
+    assert isinstance(data["date"], str), (
+        "Le champ 'date' doit être une chaîne"
+    )
+
+    assert isinstance(data["rates"], dict), (
+        "Le champ 'rates' doit être un objet"
     )
 
     return res["latency_ms"]
 
 
-def test_country_filter(client):
+def test_usd_rate(client):
     res = client.get(
-        "",
+        "/latest",
         params={
-            "name": "michael",
-            "country_id": "FR"
+            "from": "EUR",
+            "to": "USD"
         }
     )
 
@@ -92,25 +98,32 @@ def test_country_filter(client):
 
     data = res["response"].json()
 
-    assert data.get("country_id") == "FR", (
-        f"country_id attendu 'FR', reçu {data.get('country_id')}"
+    assert "rates" in data, (
+        "Champ 'rates' manquant"
+    )
+
+    assert "USD" in data["rates"], (
+        "Le taux USD est absent"
+    )
+
+    assert isinstance(data["rates"]["USD"], (int, float)), (
+        "Le taux USD doit être un nombre"
     )
 
     return res["latency_ms"]
 
 
-def test_missing_name_returns_422(client):
-    res = client.get("", params={})
-
-    assert res["status_code"] == 422, (
-        f"Code attendu 422 pour paramètre manquant, "
-        f"reçu {res['status_code']}"
+def test_invalid_currency(client):
+    res = client.get(
+        "/latest",
+        params={
+            "from": "EUR",
+            "to": "XXX"
+        }
     )
 
-    data = res["response"].json()
-
-    assert "error" in data, (
-        "La réponse d'erreur doit contenir une clé 'error'"
+    assert res["status_code"] >= 400, (
+        f"Une erreur HTTP était attendue, reçu {res['status_code']}"
     )
 
     return res["latency_ms"]
@@ -118,8 +131,8 @@ def test_missing_name_returns_422(client):
 
 ALL_TESTS = [
     (
-        "GET /?name=michael (Code 200)",
-        test_status_200_valid_name
+        "GET /latest?from=EUR (Code 200)",
+        test_status_200_latest
     ),
     (
         "Vérification Content-Type JSON",
@@ -134,11 +147,11 @@ ALL_TESTS = [
         test_data_types
     ),
     (
-        "Filtrage par pays (country_id=FR)",
-        test_country_filter
+        "Vérification du taux EUR → USD",
+        test_usd_rate
     ),
     (
-        "Gestion d'erreur sans paramètre (Code 422)",
-        test_missing_name_returns_422
+        "Gestion d'une devise invalide",
+        test_invalid_currency
     ),
 ]
