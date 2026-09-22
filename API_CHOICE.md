@@ -1,13 +1,21 @@
 # API Choice
 
-- Étudiant :
-- API choisie :
-- URL base :
-- Documentation officielle / README :
-- Auth : None / API Key / OAuth
+- Étudiant : Ré-Anh
+- API choisie : Agify.io
+- URL base : https://api.agify.io
+- Documentation officielle / README : https://agify.io/
+- Auth : None
 - Endpoints testés :
-  - GET ...
-  - GET ...
+  - GET `/?name={name}` (ex: `/?name=michael`)
+  - GET `/?name={name}&country_id={country}` (ex: `/?name=michael&country_id=FR`)
+  - GET `/?name[]={name1}&name[]={name2}` (requête multiple)
+  - GET `/` (test d'erreur : sans paramètre 'name')
 - Hypothèses de contrat (champs attendus, types, codes) :
+  - Requête valide simple : Statut 200, JSON contenant `name` (string), `age` (integer ou null), `count` (integer).
+  - Requête avec country_id : Statut 200, JSON contenant en plus `country_id` (string).
+  - Requête multiple (liste) : Statut 200, tableau JSON d'objets.
+  - Requête sans paramètre `name` : Statut 422 (Unprocessable Entity) avec message d'erreur `Missing 'name' parameter`.
 - Limites / rate limiting connu :
+  - 1 000 requêtes / jour en accès libre sans clé d'API.
 - Risques (instabilité, downtime, CORS, etc.) :
+  - Dépasser le quota journalier (retournerait un statut 429).
