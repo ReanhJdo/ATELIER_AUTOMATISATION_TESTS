@@ -9,7 +9,6 @@ class HttpClient:
         self.timeout = timeout
 
     def get(self, endpoint="", params=None):
-
         url = f"{self.base_url}{endpoint}"
 
         max_attempts = 2
@@ -17,7 +16,6 @@ class HttpClient:
         latency_ms = 0.0
 
         for attempt in range(max_attempts):
-
             start = time.perf_counter()
 
             try:
@@ -32,24 +30,14 @@ class HttpClient:
                     2
                 )
 
-                # Gestion du 429
                 if response.status_code == 429:
-
-                    # Agify indique le temps avant le reset
-                    reset = response.headers.get(
-                        "X-Rate-Limit-Reset"
-                    )
+                    reset = response.headers.get("X-Rate-Limit-Reset")
 
                     if attempt < max_attempts - 1:
-
                         if reset:
                             try:
                                 wait_time = float(reset)
-
-                                # On évite une attente énorme
-                                # pendant le TP
                                 wait_time = min(wait_time, 5.0)
-
                             except ValueError:
                                 wait_time = 2.0
                         else:
@@ -66,9 +54,7 @@ class HttpClient:
                         "error": "Rate limit Agify (429)"
                     }
 
-                # Retry sur erreurs serveur
                 if response.status_code >= 500:
-
                     if attempt < max_attempts - 1:
                         time.sleep(1.0)
                         continue
@@ -82,7 +68,6 @@ class HttpClient:
                 }
 
             except requests.Timeout as exc:
-
                 latency_ms = round(
                     (time.perf_counter() - start) * 1000,
                     2
@@ -94,7 +79,6 @@ class HttpClient:
                     time.sleep(1.0)
 
             except requests.RequestException as exc:
-
                 latency_ms = round(
                     (time.perf_counter() - start) * 1000,
                     2
