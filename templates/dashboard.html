@@ -1,1 +1,193 @@
-Dashboard Monitoring API - Agify
+```html
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Monitoring API - Agify</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background: #f4f6f8;
+            color: #222;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        .buttons {
+            margin-bottom: 25px;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 10px 15px;
+            margin-right: 10px;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+
+        .danger {
+            color: red;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background: #e9ecef;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>📊 Tableau de bord Qualité API - Agify.io</h1>
+
+    <div class="buttons">
+        <a href="/run" class="button">⚡ Lancer un run de tests</a>
+        <a href="/health" class="button">❤️ Vérifier /health</a>
+    </div>
+
+    {% if last_run %}
+
+    <div class="card">
+        <h2>Dernier run</h2>
+
+        <p>
+            <strong>Date :</strong>
+            {{ last_run.timestamp }}
+        </p>
+
+        <p>
+            <strong>Statut :</strong>
+
+            {% if last_run.summary.failed == 0 %}
+                <span class="success">🟢 OPÉRATIONNEL</span>
+            {% else %}
+                <span class="danger">🔴 DÉGRADÉ</span>
+            {% endif %}
+        </p>
+
+        <p>
+            <strong>Succès / Échecs :</strong>
+            {{ last_run.summary.passed }} / {{ last_run.summary.failed }}
+        </p>
+
+        <p>
+            <strong>Taux d'erreur :</strong>
+            {{ last_run.summary.error_rate * 100 }} %
+        </p>
+
+        <p>
+            <strong>Latence moyenne :</strong>
+            {{ last_run.summary.latency_ms_avg }} ms
+        </p>
+
+        <p>
+            <strong>Latence P95 :</strong>
+            {{ last_run.summary.latency_ms_p95 }} ms
+        </p>
+    </div>
+
+    <div class="card">
+        <h2>Résultats des tests</h2>
+
+        <table>
+            <tr>
+                <th>Test</th>
+                <th>Résultat</th>
+                <th>Latence</th>
+                <th>Détails</th>
+            </tr>
+
+            {% for test in last_run.tests %}
+            <tr>
+                <td>{{ test.name }}</td>
+                <td>{{ test.status }}</td>
+                <td>{{ test.latency_ms }} ms</td>
+                <td>{{ test.details or '-' }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    {% else %}
+
+    <div class="card">
+        <p>
+            Aucun run enregistré pour le moment.
+            Cliquez sur « Lancer un run de tests » pour commencer.
+        </p>
+    </div>
+
+    {% endif %}
+
+    <div class="card">
+        <h2>📈 Historique des runs</h2>
+
+        {% if runs %}
+
+        <table>
+            <tr>
+                <th>ID</th>
+                <th>Date</th>
+                <th>Succès</th>
+                <th>Échecs</th>
+                <th>Taux d'erreur</th>
+                <th>Latence moyenne</th>
+                <th>Latence P95</th>
+            </tr>
+
+            {% for r in runs %}
+            <tr>
+                <td>#{{ r.id }}</td>
+                <td>{{ r.timestamp }}</td>
+                <td>{{ r.passed }}</td>
+                <td>{{ r.failed }}</td>
+                <td>{{ r.error_rate * 100 }} %</td>
+                <td>{{ r.latency_avg }} ms</td>
+                <td>{{ r.latency_p95 }} ms</td>
+            </tr>
+            {% endfor %}
+
+        </table>
+
+        {% else %}
+
+        <p>Aucun historique disponible.</p>
+
+        {% endif %}
+    </div>
+
+</body>
+</html>
+```
